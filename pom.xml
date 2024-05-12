@@ -10,6 +10,8 @@
     <packaging>pom</packaging>
     <modules>
         <module>sparkStreaming-realtime</module>
+        <module>spark-study</module>
+        <module>scala-study</module>
     </modules>
 
     <properties>
