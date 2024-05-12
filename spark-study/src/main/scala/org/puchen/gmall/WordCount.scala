@@ -20,7 +20,7 @@ object WordCount {
     result.foreach(println)
     println(result.collect().toBuffer)
 
-    result.repartition(1).saveAsTextFile("E:\\study\\spark-realtime-2024\\spark-study\\src\\main\\resources\\data\\result.txt")
+    result.repartition(1).saveAsTextFile("E:\\study\\spark-realtime-2024\\spark-study\\src\\main\\resources\\data\\result")
 
 
    Thread.sleep(1000*60)
