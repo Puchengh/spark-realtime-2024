@@ -12,7 +12,7 @@ object WordCount {
 
     sc.setLogLevel("WARN")
 
-    val lines: RDD[String] = sc.textFile("E:\\study\\spark-realtime-2024\\spark-study\\src\\main\\resources\\data\\words.txt")
+    val lines: RDD[String] = sc.textFile("E:\\study\\spark-realtime-2024\\spark-study\\src\\main\\resources\\data\\input\\words.txt")
 
     val words: RDD[String] = lines.flatMap(_.split(" "))
     val wordAndOnes: RDD[(String, Int)] = words.map((_, 1))
@@ -20,10 +20,10 @@ object WordCount {
     result.foreach(println)
     println(result.collect().toBuffer)
 
-    result.repartition(1).saveAsTextFile("E:\\study\\spark-realtime-2024\\spark-study\\src\\main\\resources\\data\\result")
+    result.repartition(1).saveAsTextFile("E:\\study\\spark-realtime-2024\\spark-study\\src\\main\\resources\\data\\output")
 
 
-   Thread.sleep(1000*60)
+//   Thread.sleep(1000*60)
 
     sc.stop()
   }
