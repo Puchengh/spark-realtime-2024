@@ -11,6 +11,8 @@
     <modules>
         <module>sparkStreaming-realtime</module>
         <module>spark-study</module>
+        <module>Scala-Beginer</module>
+        <module>kafka_3.6.1</module>
     </modules>
 
     <properties>
