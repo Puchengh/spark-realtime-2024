@@ -1,5 +1,6 @@
 package com.puchen.java.kafka3_6_1.producer;
 
+import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.util.HashMap;
