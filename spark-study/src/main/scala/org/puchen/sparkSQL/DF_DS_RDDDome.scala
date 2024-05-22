@@ -5,7 +5,7 @@ import org.apache.spark.api.java.JavaRDD.fromRDD
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.spark.streaming.StreamingContext
-import org.puchen.Util.SSC
+import org.puchen.util.SSC
 import org.puchen.dome.Person
 
 object DF_DS_RDDDome {

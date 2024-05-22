@@ -3,7 +3,7 @@ package org.puchen.sparkstreaming
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.streaming.dstream.{DStream, ReceiverInputDStream}
-import org.puchen.Util.SSC
+import org.puchen.util.SSC
 
 object TopN {
 

@@ -1,4 +1,4 @@
-package org.puchen.Util
+package org.puchen.util
 
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}

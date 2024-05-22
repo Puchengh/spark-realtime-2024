@@ -5,7 +5,7 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.{DStream, InputDStream, ReceiverInputDStream}
 import org.apache.spark.streaming.kafka010.{ConsumerStrategies, KafkaUtils, LocationStrategies}
-import org.puchen.Util.SSC
+import org.puchen.util.SSC
 
 object SparkStreamingKafkaAuto {
 

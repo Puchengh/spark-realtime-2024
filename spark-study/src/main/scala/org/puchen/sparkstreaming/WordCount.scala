@@ -4,7 +4,7 @@ import breeze.stats.hist
 import org.apache.spark.streaming.dstream.{DStream, ReceiverInputDStream}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
-import org.puchen.Util.SSC
+import org.puchen.util.SSC
 
 object WordCount {
 
