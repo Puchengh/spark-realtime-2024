@@ -19,7 +19,7 @@ public class KafakaProducerTest {
     public static void main(String[] args) throws InterruptedException {
         //创建配置对象
         HashMap<String, Object> conf = new HashMap<>();
-        conf.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        conf.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "study:9092");
 
 
         //对生产的数据KV进行序列化
@@ -40,7 +40,7 @@ public class KafakaProducerTest {
 //
 //        producer.send(record);
         for (int i = 0; i < 1000; i++) {
-            ProducerRecord<String, String> record = new ProducerRecord<String, String>("test", i%2, "key" + i, "value" + i);
+            ProducerRecord<String, String> record = new ProducerRecord<String, String>("ods_produce_t", i%2, "key" + i, "value" + i);
             System.out.println(record.toString());
             producer.send(record);
             Thread.sleep(1000);
