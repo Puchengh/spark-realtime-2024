@@ -43,6 +43,8 @@ object MyKafkaUtils {
     ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringDeserializer",
     //groupid
     // offset 提交
+    // batch.size  16Kb
+    //linger.ms 0
     ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> "true",
     //    ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG -> "5000"  //默认是5s 自动提交的时间间隔
     // offset 重置
@@ -136,9 +138,15 @@ object MyKafkaUtils {
   /**
    * 关闭生产者对象
    */
-
   def close(): Unit = {
     if (producer != null) producer.close()
+  }
+
+  /**
+   * 将缓冲区的方法刷写到磁盘中
+   */
+  def flush(): Unit = {
+    producer.flush()
   }
 
 }

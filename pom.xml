@@ -13,6 +13,7 @@
         <module>spark-study</module>
         <module>Scala-Beginer</module>
         <module>kafka_3.6.1</module>
+        <module>habse_2.4.11</module>
     </modules>
 
     <properties>

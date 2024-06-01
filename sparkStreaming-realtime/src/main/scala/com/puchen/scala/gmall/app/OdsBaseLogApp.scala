@@ -99,88 +99,102 @@ object OdsBaseLogApp {
 
     jsonjDStream.foreachRDD(
       rdd => {
-        rdd.foreach(
-          jsonObj => {
-            //分流过程
-            //分流错误数据
-            val errorObject: JSONObject = jsonObj.getJSONObject("err")
-            if (errorObject != null) {
 
-              MyKafkaUtils.send(DWD_ERROR_LOG_TOPIC, jsonObj.toJSONString)
-            } else {
-              //提取公共字段
-              val commonObject: JSONObject = jsonObj.getJSONObject("common")
-              val ar: String = commonObject.getString("ar")
-              val uid: String = commonObject.getString("uid")
-              val os: String = commonObject.getString("os")
-              val ch: String = commonObject.getString("ch")
-              val is_new: String = commonObject.getString("is_new")
-              val md: String = commonObject.getString("md")
-              val mid: String = commonObject.getString("mid")
-              val vc: String = commonObject.getString("vc")
-              val ba: String = commonObject.getString("ba")
-              //提取时间戳
-              val ts: Long = jsonObj.getLong("ts")
-              val pageObj: JSONObject = jsonObj.getJSONObject("page")
-              if (pageObj != null) {
-                //提取page字段
-                val page_id: String = pageObj.getString("page_id")
-                val item: String = pageObj.getString("item")
-                val during_time: Long = pageObj.getLong("during_time")
-                val item_type: String = pageObj.getString("item_type")
-                val last_page_id: String = pageObj.getString("last_page_id")
-                val source_type: String = pageObj.getString("source_type")
-                //封装PageLog
-                val pageLog: PageLog = PageLog(mid, uid, ar, ch, is_new, md, os, vc, ba, page_id, last_page_id, item, item_type, during_time, source_type, ts)
-                //发送到page主题中--DWD_PAGE_LOG_TOPIC
-                MyKafkaUtils.send(DWD_PAGE_LOG_TOPIC, JSON.toJSONString(pageLog, new SerializeConfig(true))) //fastjson中有java是get set方法  scala没有、
-                //提取曝光数据
-                val displaysArray: JSONArray = jsonObj.getJSONArray("displays")
-                if (displaysArray != null && displaysArray.size() > 0)
+        rdd.foreachPartition(
+          jsonObjOter =>{
+            for (jsonObj <- jsonObjOter) {
 
-                  for (i <- 0 until (displaysArray.size())) {
-                    val displaysObj: JSONObject = displaysArray.getJSONObject(i)
-                    val display_type: String = displaysObj.getString("display_type")
-                    val displaysitem: String = displaysObj.getString("item")
-                    val displaysitem_type: String = displaysObj.getString("item_type")
-                    val pos_id: String = displaysObj.getString("pos_id")
-                    val order: String = displaysObj.getString("order")
-                    val pageDisPageLog: PageDisPageLog = PageDisPageLog(mid, uid, ar, ch, is_new, md, os, vc, ba, page_id, last_page_id, item, item_type, during_time, source_type, ts, display_type, displaysitem, displaysitem_type, pos_id, order)
-                    //写到kafaka--DWD_PAGE_DISPLAY_TOPIC
-                    MyKafkaUtils.send(DWD_PAGE_DISPLAY_TOPIC, JSON.toJSONString(pageDisPageLog, new SerializeConfig(true)))
-                  }
-                //提取事件数据
-                val actionsArray: JSONArray = jsonObj.getJSONArray("actions")
-                if (actionsArray != null && actionsArray.size() > 0) {
-                  for (i <- 0 until (actionsArray.size())) {
-                    val actionsObj: JSONObject = actionsArray.getJSONObject(i)
-                    val action_item: String = actionsObj.getString("item")
-                    val action_id: String = actionsObj.getString("action_id")
-                    val action_item_type: String = actionsObj.getString("item_type")
-                    val action_ts: Long = actionsObj.getLong("ts")
+              //分流过程
+              //分流错误数据
+              val errorObject: JSONObject = jsonObj.getJSONObject("err")
+              if (errorObject != null) {
 
-                    val pageActionLog: PageActionLog = PageActionLog(mid, uid, ar, ch, is_new, md, os, vc, ba, page_id, last_page_id, item, item_type, during_time, source_type, action_id, action_item, action_item_type, action_ts, ts)
+                MyKafkaUtils.send(DWD_ERROR_LOG_TOPIC, jsonObj.toJSONString)
+              } else {
+                //提取公共字段
+                val commonObject: JSONObject = jsonObj.getJSONObject("common")
+                val ar: String = commonObject.getString("ar")
+                val uid: String = commonObject.getString("uid")
+                val os: String = commonObject.getString("os")
+                val ch: String = commonObject.getString("ch")
+                val is_new: String = commonObject.getString("is_new")
+                val md: String = commonObject.getString("md")
+                val mid: String = commonObject.getString("mid")
+                val vc: String = commonObject.getString("vc")
+                val ba: String = commonObject.getString("ba")
+                //提取时间戳
+                val ts: Long = jsonObj.getLong("ts")
+                val pageObj: JSONObject = jsonObj.getJSONObject("page")
+                if (pageObj != null) {
+                  //提取page字段
+                  val page_id: String = pageObj.getString("page_id")
+                  val item: String = pageObj.getString("item")
+                  val during_time: Long = pageObj.getLong("during_time")
+                  val item_type: String = pageObj.getString("item_type")
+                  val last_page_id: String = pageObj.getString("last_page_id")
+                  val source_type: String = pageObj.getString("source_type")
+                  //封装PageLog
+                  val pageLog: PageLog = PageLog(mid, uid, ar, ch, is_new, md, os, vc, ba, page_id, last_page_id, item, item_type, during_time, source_type, ts)
+                  //发送到page主题中--DWD_PAGE_LOG_TOPIC
+                  MyKafkaUtils.send(DWD_PAGE_LOG_TOPIC, JSON.toJSONString(pageLog, new SerializeConfig(true))) //fastjson中有java是get set方法  scala没有、
+                  //提取曝光数据
+                  val displaysArray: JSONArray = jsonObj.getJSONArray("displays")
+                  if (displaysArray != null && displaysArray.size() > 0)
 
-                    MyKafkaUtils.send(DWD_PAGE_ACTIION_TOPIC, JSON.toJSONString(pageActionLog, new SerializeConfig(true)))
+                    for (i <- 0 until (displaysArray.size())) {
+                      val displaysObj: JSONObject = displaysArray.getJSONObject(i)
+                      val display_type: String = displaysObj.getString("display_type")
+                      val displaysitem: String = displaysObj.getString("item")
+                      val displaysitem_type: String = displaysObj.getString("item_type")
+                      val pos_id: String = displaysObj.getString("pos_id")
+                      val order: String = displaysObj.getString("order")
+                      val pageDisPageLog: PageDisPageLog = PageDisPageLog(mid, uid, ar, ch, is_new, md, os, vc, ba, page_id, last_page_id, item, item_type, during_time, source_type, ts, display_type, displaysitem, displaysitem_type, pos_id, order)
+                      //写到kafaka--DWD_PAGE_DISPLAY_TOPIC
+                      MyKafkaUtils.send(DWD_PAGE_DISPLAY_TOPIC, JSON.toJSONString(pageDisPageLog, new SerializeConfig(true)))
+                    }
+                  //提取事件数据
+                  val actionsArray: JSONArray = jsonObj.getJSONArray("actions")
+                  if (actionsArray != null && actionsArray.size() > 0) {
+                    for (i <- 0 until (actionsArray.size())) {
+                      val actionsObj: JSONObject = actionsArray.getJSONObject(i)
+                      val action_item: String = actionsObj.getString("item")
+                      val action_id: String = actionsObj.getString("action_id")
+                      val action_item_type: String = actionsObj.getString("item_type")
+                      val action_ts: Long = actionsObj.getLong("ts")
+
+                      val pageActionLog: PageActionLog = PageActionLog(mid, uid, ar, ch, is_new, md, os, vc, ba, page_id, last_page_id, item, item_type, during_time, source_type, action_id, action_item, action_item_type, action_ts, ts)
+
+                      MyKafkaUtils.send(DWD_PAGE_ACTIION_TOPIC, JSON.toJSONString(pageActionLog, new SerializeConfig(true)))
+                    }
                   }
                 }
-              }
-              //启动数据
-              val startObj: JSONObject = jsonObj.getJSONObject("start")
-              if (startObj != null) {
-                val start_entry: String = startObj.getString("entry")
-                val start_open_ad_skip_ms: Long = startObj.getLong("open_ad_skip_ms")
-                val start_open_ad_ms: Long = startObj.getLong("open_ad_ms")
-                val start_loading_time: Long = startObj.getLong("loading_time")
-                val start_open_ad_id: String = startObj.getString("open_ad_id")
-                val startLog: StartLog = StartLog(mid, uid, ar, ch, is_new, md, os, vc, ba, start_entry, start_open_ad_id, start_loading_time, start_open_ad_ms, start_open_ad_skip_ms, ts)
-                MyKafkaUtils.send(DWD_START_LOG_TOPIC, JSON.toJSONString(startLog, new SerializeConfig(true)))
+                //启动数据
+                val startObj: JSONObject = jsonObj.getJSONObject("start")
+                if (startObj != null) {
+                  val start_entry: String = startObj.getString("entry")
+                  val start_open_ad_skip_ms: Long = startObj.getLong("open_ad_skip_ms")
+                  val start_open_ad_ms: Long = startObj.getLong("open_ad_ms")
+                  val start_loading_time: Long = startObj.getLong("loading_time")
+                  val start_open_ad_id: String = startObj.getString("open_ad_id")
+                  val startLog: StartLog = StartLog(mid, uid, ar, ch, is_new, md, os, vc, ba, start_entry, start_open_ad_id, start_loading_time, start_open_ad_ms, start_open_ad_skip_ms, ts)
+                  MyKafkaUtils.send(DWD_START_LOG_TOPIC, JSON.toJSONString(startLog, new SerializeConfig(true)))
+                }
               }
             }
-            //提交offset??? foreach里面  Execture端执行的 一定不能选了 会涉及IO传输 类似广播的操作  每条数据执行一次
+            //foreanchPartition 里面  在executor里面执行 每批次每分区执行一次
+            MyKafkaUtils.flush()
           }
         )
+/*
+        rdd.foreach(
+          jsonObj => {
+            //提交offset??? foreach里面  Execture端执行的 一定不能选了 会涉及IO传输 类似广播的操作  每条数据执行一次
+            //MyKafkaUtils.flush()  //分流是在executor里面  如果在driver里面刷写，刷的不是同一个producer对象 但是放在这里会导致性能降低
+          }
+        )
+*/
         //提交offset???  foreach外面 foreadrdd里面  周期性执行 一次批次执行一次 Driver端执行一次
+
         MyOffsetsUtils.saveOffset(topicName,groupId,offsetRanges)
       }
     )
