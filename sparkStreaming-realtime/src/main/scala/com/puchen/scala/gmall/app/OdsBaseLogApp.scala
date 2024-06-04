@@ -15,14 +15,11 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 /**
  * 1.准备实时处理环境 StreamingContext
- *
  * 2.从kafka中消费数据
- *
  * 3.处理数据
  * 3.1转换数据结构
  * 3.2分流
  * 4.写出到DWD层
- *
  */
 object OdsBaseLogApp {
   def main(args: Array[String]): Unit = {
@@ -73,15 +70,7 @@ object OdsBaseLogApp {
     //    jsonjDStream.print(100)
     /**
      * 3.2分流
-     * 日志数据
-     * 公共字段
-     * 页面数据
-     * 曝光数据
-     * 事件数据
-     * 错误数据
-     * 启动数据
-     * 公共字段
-     * 启动数据
+     * 日志数据-公共字段-页面数据-曝光数据-事件数据-错误数据-启动数据-公共字段-启动数据
      */
     val DWD_PAGE_LOG_TOPIC: String = "DWD_PAGE_LOG_TOPIC_1018" //页面访问
     val DWD_PAGE_DISPLAY_TOPIC: String = "DWD_PAGE_DISPLAY_TOPIC_1018" //页面曝光
@@ -89,19 +78,17 @@ object OdsBaseLogApp {
     val DWD_START_LOG_TOPIC: String = "DWD_START_LOG_TOPIC_1018" //启动数据
     val DWD_ERROR_LOG_TOPIC: String = "DWD_ERROR_LOG_TOPIC_1018" //错误数据
 
-
     /**
      * 分流规则
      * 错误数据：不做任何的拆分，只要包含错误字段，直接整条数据发送到对应的topic
      * 页面数据：炒粉成页面访问 曝光 时间 分别发送对应不能的topic
      * 启动数据：发送到对应的topic
      */
-
     jsonjDStream.foreachRDD(
       rdd => {
 
         rdd.foreachPartition(
-          jsonObjOter =>{
+          jsonObjOter => {
             for (jsonObj <- jsonObjOter) {
 
               //分流过程
@@ -185,17 +172,18 @@ object OdsBaseLogApp {
             MyKafkaUtils.flush()
           }
         )
-/*
-        rdd.foreach(
-          jsonObj => {
-            //提交offset??? foreach里面  Execture端执行的 一定不能选了 会涉及IO传输 类似广播的操作  每条数据执行一次
-            //MyKafkaUtils.flush()  //分流是在executor里面  如果在driver里面刷写，刷的不是同一个producer对象 但是放在这里会导致性能降低
-          }
-        )
-*/
+
+        /**
+         * rdd.foreach(
+         * jsonObj => {
+         * //提交offset??? foreach里面  Execture端执行的 一定不能选了 会涉及IO传输 类似广播的操作  每条数据执行一次
+         * //MyKafkaUtils.flush()  //分流是在executor里面  如果在driver里面刷写，刷的不是同一个producer对象 但是放在这里会导致性能降低
+         * }
+         * )
+         */
         //提交offset???  foreach外面 foreadrdd里面  周期性执行 一次批次执行一次 Driver端执行一次
 
-        MyOffsetsUtils.saveOffset(topicName,groupId,offsetRanges)
+        MyOffsetsUtils.saveOffset(topicName, groupId, offsetRanges)
       }
     )
     //提交offset???  foreadrdd外面  主程序提交每次执行程序执行一次  Driver执行
