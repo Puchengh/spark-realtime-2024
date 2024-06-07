@@ -13,6 +13,8 @@ object DateFream_RDD {
     //由于toDF方法在Spark 2.0之后被弃用了，所以我们使用了createDataFrame方法来创建DataFrame。
 
 
+
+
     // 创建SparkSession
     val spark = SparkSession.builder()
       .appName("Create DataFrame with nulls using toDF")
