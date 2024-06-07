@@ -7,6 +7,9 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 
+/**
+ * 重量级
+ */
 public class HbaseDDL {
 
     // 添加静态属性 connection 指向单例连接
@@ -50,8 +53,7 @@ public class HbaseDDL {
      * @param tableName 表格名称
      * @return ture 表示存在
      */
-    public static boolean isTableExists(String namespace, String
-            tableName) throws IOException {
+    public static boolean isTableExists(String namespace, String tableName) throws IOException {
         // 1. 获取 admin
         Admin admin = connection.getAdmin();
         // 2. 使用方法判断表格是否存在
@@ -91,13 +93,11 @@ public class HbaseDDL {
         Admin admin = connection.getAdmin();
         // 2. 调用方法创建表格
         // 2.1 创建表格描述的建造者
-        TableDescriptorBuilder tableDescriptorBuilder =
-                TableDescriptorBuilder.newBuilder(TableName.valueOf(namespace, tableName));
+        TableDescriptorBuilder tableDescriptorBuilder = TableDescriptorBuilder.newBuilder(TableName.valueOf(namespace, tableName));
         // 2.2 添加参数
         for (String columnFamily : columnFamilies) {
             // 2.3 创建列族描述的建造者
-            ColumnFamilyDescriptorBuilder
-                    columnFamilyDescriptorBuilder = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(columnFamily));
+            ColumnFamilyDescriptorBuilder columnFamilyDescriptorBuilder = ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes(columnFamily));
             // 2.4 对应当前的列族添加参数 // 添加版本参数
             columnFamilyDescriptorBuilder.setMaxVersions(5); // 2.5 创建添加完参数的列族描述
             tableDescriptorBuilder.setColumnFamily(columnFamilyDescriptorBuilder.build());
@@ -130,24 +130,20 @@ public class HbaseDDL {
         // 1. 获取 admin
         Admin admin = connection.getAdmin();
         try {
-        // 2. 调用方法修改表格
-        // 2.0 获取之前的表格描述
-            TableDescriptor descriptor =
-                    admin.getDescriptor(TableName.valueOf(namespace, tableName));
-        // 2.1 创建一个表格描述建造者
-        // 如果使用填写 tableName 的方法  相当于创建了一个新的表格描述建造 者  没有之前的信息
-        // 如果想要修改之前的信息   必须调用方法填写一个旧的表格描述
+            // 2. 调用方法修改表格
+            // 2.0 获取之前的表格描述
+            TableDescriptor descriptor = admin.getDescriptor(TableName.valueOf(namespace, tableName));
+            // 2.1 创建一个表格描述建造者
+            // 如果使用填写 tableName 的方法  相当于创建了一个新的表格描述建造者  没有之前的信息
+            // 如果想要修改之前的信息   必须调用方法填写一个旧的表格描述
             TableDescriptorBuilder tableDescriptorBuilder = TableDescriptorBuilder.newBuilder(descriptor);
 
-        // 2.2 对应建造者进行表格数据的修改
-            ColumnFamilyDescriptor columnFamily1 =
-                    descriptor.getColumnFamily(Bytes.toBytes(columnFamily));
-        // 创建列族描述建造者
-        // 需要填写旧的列族描述
-            ColumnFamilyDescriptorBuilder
-                    columnFamilyDescriptorBuilder =
-                    ColumnFamilyDescriptorBuilder.newBuilder(columnFamily1);
-        // 修改对应的版本
+            // 2.2 对应建造者进行表格数据的修改
+            ColumnFamilyDescriptor columnFamily1 = descriptor.getColumnFamily(Bytes.toBytes(columnFamily));
+            // 创建列族描述建造者
+            // 需要填写旧的列族描述
+            ColumnFamilyDescriptorBuilder columnFamilyDescriptorBuilder = ColumnFamilyDescriptorBuilder.newBuilder(columnFamily1);
+            // 修改对应的版本
             columnFamilyDescriptorBuilder.setMaxVersions(version);
             // 此处修改的时候  如果填写的新创建   那么别的参数会初始化
             tableDescriptorBuilder.modifyColumnFamily(columnFamilyDescriptorBuilder.build());
@@ -158,10 +154,41 @@ public class HbaseDDL {
         // 3. 关闭 admin admin.close();
     }
 
+    /**
+     * @param namespace
+     * @param tableName
+     * @return
+     */
+    public static boolean delteTable(String namespace, String tableName) throws IOException {
+
+        if (!isTableExists(namespace, tableName)) {
+            System.out.println("表不存在,无法删除!");
+            return false;
+        }
+
+        Admin admin = connection.getAdmin();
+        try {
+            TableName tableNameDel = TableName.valueOf(namespace,tableName);
+            //删除表格表格之前 一定要先笔记表格不可用
+            admin.disableTable(tableNameDel);
+            admin.deleteTable(tableNameDel);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        admin.close();
+        return true;
+    }
+
     public static void main(String[] args) throws IOException {
         System.out.println(isTableExists("bigdata", "student"));
 
-        createTable("bigdata", "student222", "info", "msg");
+        createTable("bigdata", "student", "info");
+//
+//        //修改表格
+//        modifyTable("bigdata", "student1111", "info", 4);
+//
+//        delteTable("bigdata", "student222");
 
         System.out.println("其他代码");
         HBaseConnect.closeConnection();
