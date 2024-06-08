@@ -1,6 +1,6 @@
 package com.puchen.scala.gmall.app
 
-import com.alibaba.fastjson.JSON
+import com.alibaba.fastjson.{JSON, JSONObject}
 import com.puchen.scala.gmall.bean.{DauInfo, PageLog}
 import com.puchen.scala.gmall.util.{MyBeanUtils, MyKafkaUtils, MyOffsetsUtils, MyRedisUtils}
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -13,7 +13,7 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 import redis.clients.jedis.Jedis
 
 import java.text.SimpleDateFormat
-import java.time.LocalDate
+import java.time.{LocalDate, Period}
 import java.{lang, util}
 import java.util.Date
 import scala.collection.mutable.ListBuffer
@@ -25,9 +25,9 @@ import scala.collection.mutable.ListBuffer
  * 3.从Kafaka中消费数据
  * 4.提取偏移量结束点
  * 5.处理数据
- *    5.1转换数据结构
- *    5.2去重
- *    5.3维度关联
+ * 5.1转换数据结构
+ * 5.2去重
+ * 5.3维度关联
  * 6.写入es中
  * 7.提交offset
  */
@@ -44,9 +44,9 @@ object DwdDauApp {
     val offsets: Map[TopicPartition, Long] = MyOffsetsUtils.reaOffset(topicName, groupId)
     // 3.从Kafaka中消费数据
     var kafkaDStream: InputDStream[ConsumerRecord[String, String]] = null
-    if(offsets != null && offsets.nonEmpty){
+    if (offsets != null && offsets.nonEmpty) {
       kafkaDStream = MyKafkaUtils.getKafkaDStram(ssc, topicName, groupId, offsets)
-    }else{
+    } else {
       kafkaDStream = MyKafkaUtils.getKafkaDStram(ssc, topicName, groupId)
     }
     //4.提取偏移量结束点
@@ -97,7 +97,7 @@ object DwdDauApp {
       (pageLogIter: Iterator[PageLog]) => {
 
         val pageLogList: List[PageLog] = pageLogIter.toList
-    //        println("第三方审查前：" + pageLogList.size)
+        //        println("第三方审查前：" + pageLogList.size)
 
         val jedis: Jedis = MyRedisUtils.getJedisClient
         val sdf: SimpleDateFormat = new SimpleDateFormat("yyy-MM-dd")
@@ -130,33 +130,77 @@ object DwdDauApp {
           }
         }
         jedis.close()
-    //        println("第三方审查后：" + pageLogs.size)
+        //        println("第三方审查后：" + pageLogs.size)
         pageLogs.iterator
       }
     )
     //    redisFilterDStream.print()
     //    5.3维度关联
-    redisFilterDStream.mapPartitions(
+    val dauinfoDStream: DStream[DauInfo] = redisFilterDStream.mapPartitions(
       pageLogIter => {
+        val dauinfos: ListBuffer[DauInfo] = ListBuffer[DauInfo]()
+        val sdf: SimpleDateFormat = new SimpleDateFormat("yyy-MM-dd HH:mm:ss")
+        val jedis: Jedis = MyRedisUtils.getJedisClient
         for (pageLog <- pageLogIter) {
           //(1)将pageLog中以后用到的字段拷贝DauInfo中  对应赋值
-                    val dauInfo: DauInfo = new DauInfo()
+          val dauInfo: DauInfo = new DauInfo()
           //          dauInfo.mid = pageLog.mid
           //通过对象拷贝
-          MyBeanUtils.copyProperties(pageLog,dauInfo)
+          MyBeanUtils.copyProperties(pageLog, dauInfo)
           //(2)补充维度信息
           //    =>用户信息维度
-          //    =>地区信息维度
-          //    =>日期字段处理
-        }
+          val uid: String = pageLog.user_id
+          val redisUidKey: String = s"DIM:USER_INFO:$uid"
+          val userInfoJson: String = jedis.get(redisUidKey)
 
-       null
+          val userObjectJson: JSONObject = JSON.parseObject(userInfoJson)
+          //提取性别
+          val gender: String = userObjectJson.getString("gender")
+          //提取生日
+          val birthday: String = userObjectJson.getString("birthday") //1973-01-02
+          val birthdatLd: LocalDate = LocalDate.parse(birthday)
+          val noeLd: LocalDate = LocalDate.now()
+
+          val period: Period = Period.between(birthdatLd, noeLd)
+          val age: Int = period.getYears
+
+          //补充到对象中
+          dauInfo.user_gender = gender
+          dauInfo.user_age = age.toString
+
+          //    =>地区信息维度
+          val provinceId: String = dauInfo.province_id
+          val redisproKey: String = s"DIM:BASE_PROVINCE:$provinceId"
+          val privinceJson: String = jedis.get(redisproKey)
+          val provinceJsonObj: JSONObject = JSON.parseObject(privinceJson)
+          val provinceName: String = provinceJsonObj.getString("name")
+          val provinceAreaCdoe: String = provinceJsonObj.getString("area_code")
+          val province3166: String = provinceJsonObj.getString("iso_3166_2")
+          val provinceIsoCode: String = provinceJsonObj.getString("iso_code")
+
+          dauInfo.province_name = provinceName
+          dauInfo.province_iso_code = provinceIsoCode
+          dauInfo.province_3166_2 = province3166
+          dauInfo.province_area_code = provinceAreaCdoe
+          //    =>日期字段处理
+          val date: Date = new Date(pageLog.ts)
+          val dtHr: String = sdf.format(date)
+          val dtHrArr: Array[String] = dtHr.split(" ")
+
+          dauInfo.dt = dtHrArr(0)
+          dauInfo.hr = dtHrArr(1).split(":")(0)
+          dauinfos.append(dauInfo)
+        }
+        jedis.close()
+        dauinfos.iterator
       }
     )
 
+    dauinfoDStream.print(100)
+
     // 6.写入es中
     //7.提交offset
-    
+
     ssc.start()
     ssc.awaitTermination()
   }
