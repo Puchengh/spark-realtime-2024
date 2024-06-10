@@ -2,7 +2,7 @@ package com.puchen.scala.gmall.app
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import com.puchen.scala.gmall.bean.{DauInfo, PageLog}
-import com.puchen.scala.gmall.util.{MyBeanUtils, MyKafkaUtils, MyOffsetsUtils, MyRedisUtils}
+import com.puchen.scala.gmall.util.{MyBeanUtils, MyEsUtils, MyKafkaUtils, MyOffsetsUtils, MyRedisUtils}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.spark.SparkConf
@@ -196,9 +196,32 @@ object DwdDauApp {
       }
     )
 
-    dauinfoDStream.print(100)
+    //    dauinfoDStream.print(100)
 
     // 6.写入es中
+    //按照天分割索引 通过索引控制mapping settings alias等
+
+    dauinfoDStream.foreachRDD(
+      (rdd: RDD[DauInfo]) => {
+        rdd.foreachPartition(
+          (dauInfoIter: Iterator[DauInfo]) => {
+            val docs: List[(String, DauInfo)] = dauInfoIter.map((dauInfo: DauInfo) => (dauInfo.mid, dauInfo)).toList
+            //索引的名称
+            if (docs.size > 0) {
+              val head: (String, DauInfo) = docs.head
+              val ts: Long = head._2.ts
+              val sdf: SimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd")
+              val dateStr: String = sdf.format(new Date(ts))
+              val indexName: String = s"gmall_dau_info_1018_${dateStr}"
+              //写入es中
+              MyEsUtils.bucketSave(indexName, docs)
+            }
+          }
+        )
+        //提交offset
+        MyOffsetsUtils.saveOffset(topicName, groupId, offsetRanges)
+      }
+    )
     //7.提交offset
 
     ssc.start()

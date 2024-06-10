@@ -15,7 +15,7 @@ object SparkTest {
     //    name.setLevel(Level.ERROR)
     //    context.setLogLevel("ERROR")
     //    println(context)
-    val lines: RDD[String] = context.textFile("src/main/resources/test.txt")
+    val lines: RDD[String] = context.textFile("E:\\study\\spark-realtime-2024\\spark-study\\src\\main\\resources\\data\\input\\words.txt")
     val words: RDD[String] = lines.flatMap(x => x.split(" "))
     //    val word: RDD[(String, Int)] = words.map(x => (x, 1))
     val word: RDD[(String, Int)] = words.mapPartitions(iter => {

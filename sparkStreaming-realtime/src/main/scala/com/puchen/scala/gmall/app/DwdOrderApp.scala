@@ -2,8 +2,8 @@ package com.puchen.scala.gmall.app
 
 import com.alibaba.fastjson.serializer.SerializeConfig
 import com.alibaba.fastjson.{JSON, JSONObject}
-import com.puchen.scala.gmall.bean.{OrderDetail, OrderInfo, OrderWide}
-import com.puchen.scala.gmall.util.{MyKafkaUtils, MyOffsetsUtils, MyRedisUtils}
+import com.puchen.scala.gmall.bean.{DauInfo, OrderDetail, OrderInfo, OrderWide}
+import com.puchen.scala.gmall.util.{MyEsUtils, MyKafkaUtils, MyOffsetsUtils, MyRedisUtils}
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.TopicPartition
 import org.apache.spark.SparkConf
@@ -12,8 +12,10 @@ import org.apache.spark.streaming.kafka010.{HasOffsetRanges, OffsetRange}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import redis.clients.jedis.Jedis
 
+import java.text.SimpleDateFormat
 import java.time.{LocalDate, Period}
 import java.util
+import java.util.Date
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -235,8 +237,26 @@ object DwdOrderApp {
       }
 
     )
+    //写入es  1.索引分割 2.使用工具类将数据写入es
+    orderWideDStream.foreachRDD(
+      rdd => {
+        rdd.foreachPartition(
+          orderWideIter => {
+            val orderwide: List[(String, OrderWide)] = orderWideIter.map(orderWide => (orderWide.detail_id.toString, orderWide)).toList
+            if (orderwide.size > 0) {
+              val head: (String, OrderWide) = orderwide.head
+              val dateStr: String = head._2.create_date
+              val indexName: String = s"gmall_order_wide_1018_${dateStr}"
+              MyEsUtils.bucketSave(indexName, orderwide)
+            }
+          }
 
-    orderWideDStream.print(100)
+        )
+        //提交offset
+        MyOffsetsUtils.saveOffset(orderinfoTopicName,orderinfoGroup,orderInfoOffsetRanges)
+        MyOffsetsUtils.saveOffset(orderDetailTopicName,orderDetailGroup,orderDeatilOffsetRanges)
+      }
+    )
 
 
     ssc.start()

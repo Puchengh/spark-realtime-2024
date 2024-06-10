@@ -11,7 +11,7 @@ case class OrderDetail(
                         create_time:String,
                         split_total_amount:Double=0D,
                         split_activity_amount:Double=0D,
-                        split_coupon_amount:Double=0D,
+                        split_coupon_amount:Double=0D
 
                       ){}
 //CREATE TABLE `order_detail`  (

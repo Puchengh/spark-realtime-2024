@@ -24,33 +24,5 @@ object ImmutablkeSet {
     val set5 = set3 - 20
     println(set5)
 
-
-    val factTables: util.Set[Int] =   new util.Set[Int]() {
-      override def size() = ???
-
-      override def isEmpty = ???
-
-      override def contains(o: Any) = ???
-
-      override def iterator() = ???
-
-      override def toArray = ???
-
-      override def toArray[T](a: Array[T]) = ???
-
-      override def add(e: Int) = ???
-
-      override def remove(o: Any) = ???
-
-      override def containsAll(c: util.Collection[_]) = ???
-
-      override def addAll(c: util.Collection[_ <: Int]) = ???
-
-      override def retainAll(c: util.Collection[_]) = ???
-
-      override def removeAll(c: util.Collection[_]) = ???
-
-      override def clear() = ???
-    }
   }
 }
