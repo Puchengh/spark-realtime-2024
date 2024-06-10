@@ -10,7 +10,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.dstream.{DStream, InputDStream}
 import org.apache.spark.streaming.kafka010.{HasOffsetRanges, OffsetRange}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
-import redis.clients.jedis.Jedis
+import redis.clients.jedis.{Jedis, Pipeline}
 
 import java.text.SimpleDateFormat
 import java.time.{LocalDate, Period}
@@ -34,6 +34,9 @@ import scala.collection.mutable.ListBuffer
 object DwdDauApp {
 
   def main(args: Array[String]): Unit = {
+    //0.状态还原
+    reverState()
+
     //1.准备实时环境
     val conf: SparkConf = new SparkConf().setAppName("dwd_dau_app").setMaster("local[4]")
     val ssc: StreamingContext = new StreamingContext(conf, Seconds(5))
@@ -226,5 +229,37 @@ object DwdDauApp {
 
     ssc.start()
     ssc.awaitTermination()
+  }
+
+  /**
+   * 状态还原 在每次启动任务的时候进行一次状态还原，将所有es中的mid提取出来 覆盖到redis中
+   */
+  def reverState(): Unit = {
+
+    //获取当前日期
+    val date: LocalDate = LocalDate.now()
+    val indexName: String = s"gmall_dau_info_1018_${date}"
+    val fieldName: String = "mid"
+    val mids: List[String] = MyEsUtils.searchField(indexName, fieldName)
+
+    //删除redis中记录记录的状态
+    val jedisClient: Jedis = MyRedisUtils.getJedisClient
+    val redisDauKey: String = s"DAU:${date}"
+    jedisClient.del(redisDauKey)
+
+    //从es查询到的mid覆盖到redis中
+    if (mids != null && mids.size > 0) {
+      //      for (mid <- mids) {
+      //        jedisClient.sadd(redisDauKey,mid)
+      //      }
+
+      val pipeline: Pipeline = jedisClient.pipelined()
+      for (mid <- mids) {
+        pipeline.sadd(redisDauKey, mid)
+      }
+      pipeline.sync()
+    }
+    jedisClient.close()
+
   }
 }
